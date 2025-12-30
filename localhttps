@@ -1,0 +1,129 @@
+Local Host HTTPS SETUP
+
+1️⃣ Install Nginx on Windows 11
+1️⃣ Download Nginx
+
+Go to nginx.org → Download
+
+Download Mainline → Windows zip
+
+Extract to:
+
+C:\nginx
+
+
+You should have:
+
+C:\nginx\nginx.exe
+C:\nginx\conf\nginx.conf
+
+2️⃣ Start Nginx
+
+Open Command Prompt as Administrator:
+
+cd C:\nginx
+nginx
+
+
+Test:
+
+http://localhost
+
+
+You should see “Welcome to nginx!”
+
+To stop nginx:
+
+nginx -s stop
+
+PART 2️⃣ Install mkcert (Local SSL)
+3️⃣ Install Chocolatey (if not installed)
+
+Run PowerShell as Admin:
+
+Set-ExecutionPolicy Bypass -Scope Process -Force
+iwr https://community.chocolatey.org/install.ps1 -UseBasicParsing | iex
+
+4️⃣ Install mkcert
+choco install mkcert
+
+5️⃣ Create Local Trusted Certificate
+mkcert -install
+
+
+Generate cert:
+
+mkcert localhost 127.0.0.1 ::1
+
+
+Files created:
+
+localhost.pem
+localhost-key.pem
+
+
+Move them to:
+
+C:\nginx\certs\
+
+Move the mkcert files
+
+Assuming mkcert generated files in your current folder:
+
+move localhost.pem C:\nginx\certs\
+move localhost-key.pem C:\nginx\certs\
+
+
+PART 3️⃣ Configure Nginx HTTPS
+6️⃣ Edit nginx.conf
+
+Open:
+
+C:\nginx\conf\nginx.conf
+
+🔹 Replace or add this configuration:
+worker_processes  1;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    sendfile        on;
+
+    server {
+        listen 80;
+        server_name localhost;
+        return 301 https://$host$request_uri;
+    }
+
+    server {
+        listen 443 ssl;
+        server_name localhost;
+
+        ssl_certificate      C:/nginx/certs/localhost.pem;
+        ssl_certificate_key  C:/nginx/certs/localhost-key.pem;
+
+        root   C:/nginx/html;
+        index  index.html index.php;
+
+        location / {
+            try_files $uri $uri/ =404;
+        }
+    }
+}
+
+
+⚠️ Important
+
+Use forward slashes /
+
+Use absolute paths
+
+7️⃣ Restart Nginx
+nginx -s stop
+nginx
+
