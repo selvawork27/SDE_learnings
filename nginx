@@ -3,7 +3,10 @@ cd C:\nginx
 .\nginx -s stop
 .\nginx
 
-
+https://localhost
+https://127.0.0.1
+https://myapp.com
+Default PORT is 443
 ****************************************************
 worker_processes  1;
 
@@ -39,3 +42,81 @@ http {
     }
 }
 ***************************************************************************************
+PORT SPECIFIC
+
+server {
+    listen 8000 ssl;
+    server_name 127.0.0.1;
+
+    ssl_certificate      C:/nginx/certs/localhost+2.pem;
+    ssl_certificate_key  C:/nginx/certs/localhost+2-key.pem;
+
+    root   C:/nginx/html;
+    index  index.php index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location ~ \.php$ {
+        fastcgi_pass   127.0.0.1:9000;
+        fastcgi_index  index.php;
+        include        fastcgi_params;
+        fastcgi_param  SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+}
+******************************************************************************************
+OVERALL THING
+
+worker_processes  1;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+    sendfile on;
+
+    # Redirect HTTP 80 → HTTPS 443
+    server {
+        listen 80;
+        server_name localhost 127.0.0.1;
+        return 301 https://$host$request_uri;
+    }
+
+    # HTTPS on 443
+    server {
+        listen 443 ssl;
+        server_name localhost 127.0.0.1;
+
+        ssl_certificate      C:/nginx/certs/localhost+2.pem;
+        ssl_certificate_key  C:/nginx/certs/localhost+2-key.pem;
+
+        root   C:/nginx/html;
+        index  index.html index.php;
+
+        location / {
+            try_files $uri $uri/ =404;
+        }
+    }
+
+    # 🔒 HTTPS ON PORT 8000 (THIS IS WHAT YOU NEED)
+    server {
+        listen 8000 ssl;
+        server_name 127.0.0.1 localhost;
+
+        ssl_certificate      C:/nginx/certs/localhost+2.pem;
+        ssl_certificate_key  C:/nginx/certs/localhost+2-key.pem;
+
+        root   C:/nginx/html;
+        index  index.php index.html;
+
+        location / {
+            try_files $uri $uri/ =404;
+        }
+    }
+}
+********************************************************************************************
+
