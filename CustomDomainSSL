@@ -1,0 +1,152 @@
+NGINX + HTTPS (myapp.com) SETUP ON WINDOWS 11
+============================================
+
+This file documents how to configure Nginx with HTTPS locally on
+Windows 11 using mkcert and a custom domain (myapp.com).
+
+--------------------------------------------------
+1. REQUIREMENTS
+--------------------------------------------------
+- Windows 11
+- Nginx (Windows build)
+- PowerShell (Run as Administrator)
+- Chocolatey
+- mkcert
+
+--------------------------------------------------
+2. INSTALL CHOCOLATEY
+--------------------------------------------------
+Run PowerShell as Administrator:
+
+Set-ExecutionPolicy Bypass -Scope Process -Force
+iwr https://community.chocolatey.org/install.ps1 -UseBasicParsing | iex
+
+Close and reopen PowerShell after installation.
+
+--------------------------------------------------
+3. INSTALL MKCERT
+--------------------------------------------------
+choco install mkcert
+mkcert -install
+
+--------------------------------------------------
+4. MAP DOMAIN TO LOCALHOST
+--------------------------------------------------
+Edit hosts file as Administrator:
+
+C:\Windows\System32\drivers\etc\hosts
+
+Add:
+127.0.0.1   myapp.com
+
+Verify:
+ping myapp.com
+
+--------------------------------------------------
+5. GENERATE SSL CERTIFICATE
+--------------------------------------------------
+mkcert myapp.com
+
+Generated files:
+myapp.com.pem
+myapp.com-key.pem
+
+--------------------------------------------------
+6. MOVE CERTIFICATES TO NGINX
+--------------------------------------------------
+mkdir C:\nginx\certs
+move myapp.com*.pem C:\nginx\certs\
+
+--------------------------------------------------
+7. NGINX CONFIGURATION
+--------------------------------------------------
+Edit file:
+C:\nginx\conf\nginx.conf
+
+Add inside the http { } block:
+
+server {
+    listen 80;
+    server_name myapp.com;
+    return 301 https://myapp.com$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name myapp.com;
+
+    ssl_certificate      C:/nginx/certs/myapp.com.pem;
+    ssl_certificate_key  C:/nginx/certs/myapp.com-key.pem;
+
+    root   C:/nginx/html/myapp;
+    index  index.html index.php;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
+
+IMPORTANT:
+- Always use forward slashes (/)
+- Paths must be absolute
+- Filenames must match exactly
+
+--------------------------------------------------
+8. CREATE SITE DIRECTORY
+--------------------------------------------------
+mkdir C:\nginx\html\myapp
+
+Create file:
+C:\nginx\html\myapp\index.html
+
+Example content:
+<h1>MyApp HTTPS Works</h1>
+
+--------------------------------------------------
+9. START / RESTART NGINX
+--------------------------------------------------
+cd C:\nginx
+.\nginx -t
+.\nginx -s stop
+.\nginx
+
+--------------------------------------------------
+10. VERIFY
+--------------------------------------------------
+Open browser:
+https://myapp.com
+
+Expected:
+- Secure lock icon
+- No certificate warning
+
+--------------------------------------------------
+11. TROUBLESHOOTING
+--------------------------------------------------
+Check certificates:
+dir C:\nginx\certs
+
+Check nginx errors:
+C:\nginx\logs\error.log
+
+Clear DNS cache:
+ipconfig /flushdns
+
+--------------------------------------------------
+12. IMPORTANT NOTE (BEST PRACTICE)
+--------------------------------------------------
+Using real domains locally is not recommended.
+
+Preferred local domains:
+myapp.test
+myapp.local
+myapp.dev
+
+--------------------------------------------------
+RESULT
+--------------------------------------------------
+- Nginx running on Windows 11
+- HTTPS enabled
+- Trusted SSL (mkcert)
+- Custom local domain working
+--------------------------------------------------
